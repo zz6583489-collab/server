@@ -1,0 +1,4 @@
+com\teamflow\common\trace\TraceIdFilterTest.class
+com\teamflow\common\security\SecurityConfigTest.class
+com\teamflow\auth\AuthWebTest.class
+com\teamflow\auth\service\AuthServiceTest.class

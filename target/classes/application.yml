@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: teamflow
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/teamflow?useUnicode=true&characterEncoding=utf8&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+  jackson:
+    time-zone: UTC
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+teamflow:
+  jwt:
+    secret: ${JWT_SECRET:N7qK4mX9vP2sL8dR5tY3bH6wF1cJ0zAa}
+    issuer: teamflow
+    access-token-minutes: 15
+  registration-enabled: ${REGISTRATION_ENABLED:false}
+logging:
+  pattern:
+    level: '%5p [traceId:%X{traceId:-}]'
+

@@ -13,7 +13,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teamflow.auth.controller.AuthController;
+import com.teamflow.auth.repository.AuthSessionMapper;
+import com.teamflow.auth.repository.LoginAttemptMapper;
 import com.teamflow.auth.service.AuthService;
+import com.teamflow.auth.service.LoginThrottleService;
 import com.teamflow.common.security.SecurityConfig;
 import com.teamflow.user.controller.UserController;
 import com.teamflow.user.entity.UserEntity;
@@ -33,12 +36,14 @@ import org.springframework.test.web.servlet.MockMvc;
       "teamflow.jwt.secret=local-test-secret-with-more-than-32-bytes",
       "teamflow.registration-enabled=false"
     })
-@Import({SecurityConfig.class, AuthService.class})
+@Import({SecurityConfig.class, AuthService.class, LoginThrottleService.class})
 class AuthWebTest {
   @Autowired MockMvc mvc;
   @Autowired ObjectMapper objectMapper;
   @Autowired PasswordEncoder passwords;
   @MockitoBean UserMapper users;
+  @MockitoBean AuthSessionMapper sessions;
+  @MockitoBean LoginAttemptMapper attempts;
 
   @Test
   void protectedEndpointRejectsAnonymousRequestWithTraceId() throws Exception {
@@ -59,6 +64,9 @@ class AuthWebTest {
     user.setStatus("ACTIVE");
     when(users.findByUsername("alice")).thenReturn(user);
     when(users.findById(7L)).thenReturn(user);
+    when(sessions.isActive(
+            org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(7L)))
+        .thenReturn(1);
 
     String body =
         mvc.perform(

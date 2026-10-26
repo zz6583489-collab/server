@@ -11,11 +11,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 用户
- */
+/** 用户 */
 @RestController
-@RequestMapping("/v1/users")
+@RequestMapping("/api/v1/users")
 public class UserController {
   private final UserMapper userMapper;
 
@@ -25,6 +23,7 @@ public class UserController {
 
   /**
    * 个人信息
+   *
    * @param authentication 认证信息
    * @return
    */
@@ -40,6 +39,6 @@ public class UserController {
     if (user == null || !"ACTIVE".equals(user.getStatus())) {
       throw new BusinessException(ErrorCode.UNAUTHORIZED);
     }
-    return ApiResponse.success(UserView.from(user));
+    return ApiResponse.success(UserView.from(user, userMapper.isAdmin(id) != 0));
   }
 }

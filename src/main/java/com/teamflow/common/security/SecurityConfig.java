@@ -2,8 +2,11 @@ package com.teamflow.common.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import com.teamflow.auth.repository.AuthSessionMapper;
 import com.teamflow.common.exception.ErrorCode;
 import com.teamflow.common.response.ApiResponse;
+import com.teamflow.user.entity.UserEntity;
+import com.teamflow.user.repository.UserMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -20,6 +23,10 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -37,7 +44,12 @@ public class SecurityConfig {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register")
+                auth.requestMatchers(
+                        HttpMethod.POST,
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/register",
+                        "/api/v1/auth/refresh",
+                        "/api/v1/auth/logout")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/actuator/health")
                     .permitAll()
@@ -94,10 +106,33 @@ public class SecurityConfig {
   }
 
   @Bean
-  JwtDecoder jwtDecoder(SecretKey jwtSecretKey, @Value("${teamflow.jwt.issuer}") String issuer) {
+  JwtDecoder jwtDecoder(
+      SecretKey jwtSecretKey,
+      @Value("${teamflow.jwt.issuer}") String issuer,
+      UserMapper users,
+      AuthSessionMapper sessions) {
     NimbusJwtDecoder decoder =
         NimbusJwtDecoder.withSecretKey(jwtSecretKey).macAlgorithm(MacAlgorithm.HS256).build();
-    decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(issuer));
+    OAuth2TokenValidator<org.springframework.security.oauth2.jwt.Jwt> activeUser =
+        jwt -> {
+          try {
+            UserEntity user = users.findById(Long.parseLong(jwt.getSubject()));
+            String sid = jwt.getClaimAsString("sid");
+            if (user != null
+                && "ACTIVE".equals(user.getStatus())
+                && sid != null
+                && sessions.isActive(sid, user.getId()) != 0) {
+              return OAuth2TokenValidatorResult.success();
+            }
+          } catch (NumberFormatException exception) {
+            // An invalid subject is an invalid bearer token.
+          }
+          return OAuth2TokenValidatorResult.failure(
+              new OAuth2Error("invalid_token", "Account unavailable", null));
+        };
+    decoder.setJwtValidator(
+        new DelegatingOAuth2TokenValidator<>(
+            JwtValidators.createDefaultWithIssuer(issuer), activeUser));
     return decoder;
   }
 }

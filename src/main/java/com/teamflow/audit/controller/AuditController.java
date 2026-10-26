@@ -32,13 +32,18 @@ public class AuditController {
   public ApiResponse<PageResult<View>> page(
       @PathVariable String projectId,
       @RequestParam(defaultValue = "1") int page,
-      @RequestParam(defaultValue = "20") int pageSize) {
+      @RequestParam(defaultValue = "20") int pageSize,
+      @RequestParam(required = false) String actorId,
+      @RequestParam(required = false) String from,
+      @RequestParam(required = false) String to,
+      @RequestParam(required = false) String action) {
     long id = ProjectService.parseId(projectId);
     projects.requireMember(id, currentUser.id());
     projects.requireOwner(id, currentUser.id());
-    long offset = PageResult.offset(page, pageSize);
-    List<View> items = audit.page(id, pageSize, offset).stream().map(View::from).toList();
-    return ApiResponse.success(new PageResult<>(items, audit.count(id), page, pageSize));
+    PageResult<AuditEntity> result =
+        audit.page(id, page, pageSize, AuditService.Filter.parse(actorId, from, to, action));
+    List<View> items = result.items().stream().map(View::from).toList();
+    return ApiResponse.success(new PageResult<>(items, result.total(), page, pageSize));
   }
 
   public record View(

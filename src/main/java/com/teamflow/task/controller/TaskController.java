@@ -31,9 +31,22 @@ public class TaskController {
   public ApiResponse<PageResult<TaskDtos.View>> page(
       @PathVariable String projectId,
       @RequestParam(defaultValue = "1") int page,
-      @RequestParam(defaultValue = "20") int pageSize) {
+      @RequestParam(defaultValue = "20") int pageSize,
+      @RequestParam(required = false) String status,
+      @RequestParam(required = false) String priority,
+      @RequestParam(required = false) String assigneeId) {
     return ApiResponse.success(
-        tasks.page(ProjectService.parseId(projectId), currentUser.id(), page, pageSize));
+        tasks.page(
+            ProjectService.parseId(projectId),
+            currentUser.id(),
+            page,
+            pageSize,
+            new TaskDtos.Filter(status, priority, assigneeId)));
+  }
+
+  @GetMapping("/projects/{projectId}/stats")
+  public ApiResponse<TaskDtos.Stats> stats(@PathVariable String projectId) {
+    return ApiResponse.success(tasks.stats(ProjectService.parseId(projectId), currentUser.id()));
   }
 
   @PostMapping("/projects/{projectId}/tasks")

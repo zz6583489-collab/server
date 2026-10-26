@@ -2,9 +2,12 @@ package com.teamflow.task.dto;
 
 import com.teamflow.task.entity.TaskActivityEntity;
 import com.teamflow.task.entity.TaskEntity;
+import com.teamflow.task.entity.TaskStatsEntity;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.ZoneOffset;
 
@@ -29,6 +32,34 @@ public final class TaskDtos {
       boolean clearDueAt) {}
 
   public record Transition(@NotBlank String version, @NotBlank String toStatus) {}
+
+  public record Filter(String status, String priority, String assigneeId) {}
+
+  public record Stats(
+      long total,
+      long todo,
+      long inProgress,
+      long inReview,
+      long done,
+      long overdue,
+      BigDecimal completionRatePercent) {
+    public static Stats from(TaskStatsEntity value) {
+      BigDecimal rate =
+          value.getTotal() == 0
+              ? BigDecimal.ZERO
+              : BigDecimal.valueOf(value.getDone())
+                  .multiply(BigDecimal.valueOf(100))
+                  .divide(BigDecimal.valueOf(value.getTotal()), 1, RoundingMode.HALF_UP);
+      return new Stats(
+          value.getTotal(),
+          value.getTodo(),
+          value.getInProgress(),
+          value.getInReview(),
+          value.getDone(),
+          value.getOverdue(),
+          rate);
+    }
+  }
 
   public record View(
       String id,

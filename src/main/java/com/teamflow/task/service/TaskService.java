@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Set;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,12 +55,35 @@ public class TaskService {
   }
 
   @Transactional(readOnly = true)
-  public PageResult<TaskDtos.View> page(long projectId, long actorId, int page, int pageSize) {
+  public PageResult<TaskDtos.View> page(
+      long projectId, long actorId, int page, int pageSize, TaskDtos.Filter filter) {
     projects.requireMember(projectId, actorId);
     long offset = PageResult.offset(page, pageSize);
+    if (filter.status() != null
+        && !Set.of("TODO", "IN_PROGRESS", "IN_REVIEW", "DONE").contains(filter.status()))
+      throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+    if (filter.priority() != null && !Set.of("LOW", "MEDIUM", "HIGH").contains(filter.priority()))
+      throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+    Long assigneeId =
+        filter.assigneeId() == null ? null : ProjectService.parseId(filter.assigneeId());
     List<TaskDtos.View> items =
-        tasks.page(projectId, pageSize, offset).stream().map(TaskDtos.View::from).toList();
-    return new PageResult<>(items, tasks.count(projectId), page, pageSize);
+        tasks
+            .pageFiltered(
+                projectId, pageSize, offset, filter.status(), filter.priority(), assigneeId)
+            .stream()
+            .map(TaskDtos.View::from)
+            .toList();
+    return new PageResult<>(
+        items,
+        tasks.countFiltered(projectId, filter.status(), filter.priority(), assigneeId),
+        page,
+        pageSize);
+  }
+
+  @Transactional(readOnly = true)
+  public TaskDtos.Stats stats(long projectId, long actorId) {
+    projects.requireMember(projectId, actorId);
+    return TaskDtos.Stats.from(tasks.stats(projectId));
   }
 
   @Transactional(readOnly = true)

@@ -30,8 +30,10 @@ public class ProjectController {
 
   @GetMapping
   public ApiResponse<PageResult<ProjectDtos.View>> page(
-      @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) {
-    return ApiResponse.success(projects.page(currentUser.id(), page, pageSize));
+      @RequestParam(defaultValue = "1") int page,
+      @RequestParam(defaultValue = "20") int pageSize,
+      @RequestParam(required = false) String status) {
+    return ApiResponse.success(projects.page(currentUser.id(), page, pageSize, status));
   }
 
   @PostMapping

@@ -2,6 +2,7 @@ package com.teamflow.task.repository;
 
 import com.teamflow.task.entity.TaskActivityEntity;
 import com.teamflow.task.entity.TaskEntity;
+import com.teamflow.task.entity.TaskStatsEntity;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -29,14 +30,47 @@ public interface TaskMapper {
           + "WHERE t.id=#{id} AND m.user_id=#{userId}")
   TaskEntity findVisible(@Param("id") long id, @Param("userId") long userId);
 
-  @Select(
-      "SELECT id,project_id,title,description,assignee_id,reporter_id,status,priority,due_at,version,created_at,updated_at "
-          + "FROM task WHERE project_id=#{projectId} ORDER BY created_at DESC,id DESC LIMIT #{size} OFFSET #{offset}")
-  List<TaskEntity> page(
-      @Param("projectId") long projectId, @Param("size") int size, @Param("offset") long offset);
+  @Select({
+    "<script>",
+    "SELECT id,project_id,title,description,assignee_id,reporter_id,status,priority,due_at,version,created_at,updated_at",
+    "FROM task WHERE project_id=#{projectId}",
+    "<if test='status != null'> AND status=#{status}</if>",
+    "<if test='priority != null'> AND priority=#{priority}</if>",
+    "<if test='assigneeId != null'> AND assignee_id=#{assigneeId}</if>",
+    "ORDER BY created_at DESC,id DESC LIMIT #{size} OFFSET #{offset}",
+    "</script>"
+  })
+  List<TaskEntity> pageFiltered(
+      @Param("projectId") long projectId,
+      @Param("size") int size,
+      @Param("offset") long offset,
+      @Param("status") String status,
+      @Param("priority") String priority,
+      @Param("assigneeId") Long assigneeId);
 
-  @Select("SELECT COUNT(*) FROM task WHERE project_id=#{projectId}")
-  long count(long projectId);
+  @Select({
+    "<script>",
+    "SELECT COUNT(*) FROM task WHERE project_id=#{projectId}",
+    "<if test='status != null'> AND status=#{status}</if>",
+    "<if test='priority != null'> AND priority=#{priority}</if>",
+    "<if test='assigneeId != null'> AND assignee_id=#{assigneeId}</if>",
+    "</script>"
+  })
+  long countFiltered(
+      @Param("projectId") long projectId,
+      @Param("status") String status,
+      @Param("priority") String priority,
+      @Param("assigneeId") Long assigneeId);
+
+  @Select(
+      "SELECT COUNT(*) AS total, "
+          + "COALESCE(SUM(status='TODO'),0) AS todo, "
+          + "COALESCE(SUM(status='IN_PROGRESS'),0) AS in_progress, "
+          + "COALESCE(SUM(status='IN_REVIEW'),0) AS in_review, "
+          + "COALESCE(SUM(status='DONE'),0) AS done, "
+          + "COALESCE(SUM(status<>'DONE' AND due_at IS NOT NULL AND due_at<UTC_TIMESTAMP(3)),0) AS overdue "
+          + "FROM task WHERE project_id=#{projectId}")
+  TaskStatsEntity stats(long projectId);
 
   @Update(
       "UPDATE task SET title=#{title},description=#{description},assignee_id=#{assigneeId},"

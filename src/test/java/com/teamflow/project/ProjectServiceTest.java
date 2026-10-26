@@ -81,6 +81,13 @@ class ProjectServiceTest {
     assertEquals(ErrorCode.PROJECT_ARCHIVED, exception.errorCode());
   }
 
+  @Test
+  void rejectsUnknownProjectStatusFilter() {
+    BusinessException exception =
+        assertThrows(BusinessException.class, () -> service.page(7L, 1, 20, "REMOVED"));
+    assertEquals(ErrorCode.VALIDATION_ERROR, exception.errorCode());
+  }
+
   private ProjectEntity project(String status) {
     ProjectEntity project = new ProjectEntity();
     project.setId(5L);

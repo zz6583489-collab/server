@@ -26,15 +26,28 @@ public interface ProjectMapper {
       "SELECT id,name,description,owner_id,status,created_at,updated_at FROM project WHERE id=#{id} FOR UPDATE")
   ProjectEntity findForUpdate(long id);
 
-  @Select(
-      "SELECT p.id,p.name,p.description,p.owner_id,p.status,p.created_at,p.updated_at "
-          + "FROM project p JOIN project_member m ON m.project_id=p.id "
-          + "WHERE m.user_id=#{userId} ORDER BY p.created_at DESC,p.id DESC LIMIT #{size} OFFSET #{offset}")
-  List<ProjectEntity> page(
-      @Param("userId") long userId, @Param("size") int size, @Param("offset") long offset);
+  @Select({
+    "<script>",
+    "SELECT p.id,p.name,p.description,p.owner_id,p.status,p.created_at,p.updated_at",
+    "FROM project p JOIN project_member m ON m.project_id=p.id WHERE m.user_id=#{userId}",
+    "<if test='status != null'> AND p.status=#{status}</if>",
+    "ORDER BY p.created_at DESC,p.id DESC LIMIT #{size} OFFSET #{offset}",
+    "</script>"
+  })
+  List<ProjectEntity> pageFiltered(
+      @Param("userId") long userId,
+      @Param("size") int size,
+      @Param("offset") long offset,
+      @Param("status") String status);
 
-  @Select("SELECT COUNT(*) FROM project_member WHERE user_id=#{userId}")
-  long count(long userId);
+  @Select({
+    "<script>",
+    "SELECT COUNT(*) FROM project p JOIN project_member m",
+    "ON m.project_id=p.id WHERE m.user_id=#{userId}",
+    "<if test='status != null'> AND p.status=#{status}</if>",
+    "</script>"
+  })
+  long countFiltered(@Param("userId") long userId, @Param("status") String status);
 
   @Select(
       "SELECT member_role FROM project_member WHERE project_id=#{projectId} AND user_id=#{userId}")

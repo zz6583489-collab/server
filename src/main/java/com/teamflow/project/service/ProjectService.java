@@ -39,11 +39,16 @@ public class ProjectService {
   }
 
   @Transactional(readOnly = true)
-  public PageResult<ProjectDtos.View> page(long actorId, int page, int pageSize) {
+  public PageResult<ProjectDtos.View> page(long actorId, int page, int pageSize, String status) {
     long offset = PageResult.offset(page, pageSize);
+    if (status != null && !"ACTIVE".equals(status) && !"ARCHIVED".equals(status)) {
+      throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+    }
     List<ProjectDtos.View> items =
-        projects.page(actorId, pageSize, offset).stream().map(ProjectDtos.View::from).toList();
-    return new PageResult<>(items, projects.count(actorId), page, pageSize);
+        projects.pageFiltered(actorId, pageSize, offset, status).stream()
+            .map(ProjectDtos.View::from)
+            .toList();
+    return new PageResult<>(items, projects.countFiltered(actorId, status), page, pageSize);
   }
 
   @Transactional(readOnly = true)

@@ -3,6 +3,8 @@ package com.teamflow.task;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -81,6 +83,24 @@ class TaskServiceTest {
 
     verify(mapper).addActivity(any());
     verify(audit).record(8L, 5L, "TASK", 10L, "TASK_STATUS_CHANGED");
+  }
+
+  @Test
+  void rejectsUnknownTaskFilterBeforeQuerying() {
+    BusinessException exception =
+        assertThrows(
+            BusinessException.class,
+            () -> service.page(5L, 8L, 1, 20, new TaskDtos.Filter("INVALID", null, null)));
+    assertEquals(ErrorCode.VALIDATION_ERROR, exception.errorCode());
+    verify(mapper, never()).pageFiltered(anyLong(), anyInt(), anyLong(), any(), any(), any());
+  }
+
+  @Test
+  void emptyProjectStatsHaveZeroCompletionRate() {
+    when(mapper.stats(5L)).thenReturn(new com.teamflow.task.entity.TaskStatsEntity());
+    TaskDtos.Stats result = service.stats(5L, 8L);
+    assertEquals(0, result.total());
+    assertEquals(java.math.BigDecimal.ZERO, result.completionRatePercent());
   }
 
   private TaskEntity task() {

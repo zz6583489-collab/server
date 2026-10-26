@@ -4,6 +4,7 @@ import com.teamflow.auth.dto.LoginRequest;
 import com.teamflow.auth.dto.LoginView;
 import com.teamflow.auth.dto.RegisterRequest;
 import com.teamflow.auth.service.AuthService;
+import com.teamflow.auth.service.ClientIpResolver;
 import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
 import com.teamflow.common.response.ApiResponse;
@@ -27,14 +28,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth")
 public class AuthController {
   private final AuthService authService;
+  private final ClientIpResolver clientIpResolver;
   private final boolean secureCookie;
   private final int refreshDays;
 
   public AuthController(
       AuthService authService,
+      ClientIpResolver clientIpResolver,
       @Value("${teamflow.jwt.cookie-secure:true}") boolean secureCookie,
       @Value("${teamflow.jwt.refresh-days:7}") int refreshDays) {
     this.authService = authService;
+    this.clientIpResolver = clientIpResolver;
     this.secureCookie = secureCookie;
     this.refreshDays = refreshDays;
   }
@@ -48,7 +52,8 @@ public class AuthController {
   @PostMapping("/login")
   public ResponseEntity<ApiResponse<LoginView>> login(
       @Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
-    AuthService.Tokens tokens = authService.login(request, servletRequest.getRemoteAddr());
+    AuthService.Tokens tokens =
+        authService.login(request, clientIpResolver.resolve(servletRequest));
     return ResponseEntity.ok()
         .header(
             HttpHeaders.SET_COOKIE,

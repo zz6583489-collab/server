@@ -16,6 +16,7 @@ import com.teamflow.auth.controller.AuthController;
 import com.teamflow.auth.repository.AuthSessionMapper;
 import com.teamflow.auth.repository.LoginAttemptMapper;
 import com.teamflow.auth.service.AuthService;
+import com.teamflow.auth.service.ClientIpResolver;
 import com.teamflow.auth.service.LoginThrottleService;
 import com.teamflow.common.security.SecurityConfig;
 import com.teamflow.user.controller.UserController;
@@ -36,7 +37,12 @@ import org.springframework.test.web.servlet.MockMvc;
       "teamflow.jwt.secret=local-test-secret-with-more-than-32-bytes",
       "teamflow.registration-enabled=false"
     })
-@Import({SecurityConfig.class, AuthService.class, LoginThrottleService.class})
+@Import({
+  SecurityConfig.class,
+  AuthService.class,
+  LoginThrottleService.class,
+  ClientIpResolver.class
+})
 class AuthWebTest {
   @Autowired MockMvc mvc;
   @Autowired ObjectMapper objectMapper;

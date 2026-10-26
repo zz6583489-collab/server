@@ -20,4 +20,6 @@ mvn -Dtest=ReportingIT,Phase2TransactionIT test
 
 常规启动使用 `mvn spring-boot:run`，本地测试值在 `application.yml`。生产镜像强制启用 `prod` profile，必须提供 `DB_URL`、`DB_USERNAME`、`DB_PASSWORD`、`JWT_SECRET`；缺少配置时启动失败。首次管理员引导与 Cookie 配置见根仓库 `README.md`。
 
+登录限流默认按直连 `remoteAddr` 计数，并忽略客户端自报 IP。只有后端端口保持私有、入口代理覆盖 `X-Real-IP` 时才设置 `TRUST_FORWARDED_IP=true`；Compose 的 Nginx 满足这两个条件。生产外层代理还需配置可信 real-IP 来源。
+
 本地测试管理员账号已经存在后，可通过 `TEAMFLOW_DEMO_ADMIN_USERNAME`、`TEAMFLOW_DEMO_ADMIN_PASSWORD`、`TEAMFLOW_DEMO_USER_PASSWORD` 环境变量运行 `node scripts/seed-demo.mjs`。它只允许本机 API，创建两名普通用户、一个项目和四种状态的任务，随后核对统计；不在源码或输出中保存密码。`node scripts/bench-read.mjs` 用于受限的本机只读性能冒烟，需要提供测试账号、项目 ID 和密码，默认 100 请求/并发 5。真实跨账号安全流程可运行 `node scripts/phase2-smoke.mjs`，会写入隔离测试库。

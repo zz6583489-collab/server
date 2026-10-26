@@ -3,9 +3,9 @@ spring:
   application:
     name: teamflow
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/teamflow}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
   flyway:
     enabled: true
     baseline-on-migrate: false
@@ -26,15 +26,15 @@ management:
       show-details: never
 teamflow:
   jwt:
-    secret: ${JWT_SECRET}
+    secret: ${JWT_SECRET:N7qK4mX9vP2sL8dR5tY3bH6wF1cJ0zAa}
     issuer: teamflow
     access-token-minutes: 15
     refresh-days: 7
     cookie-secure: ${AUTH_COOKIE_SECURE:true}
   registration-enabled: ${REGISTRATION_ENABLED:false}
   bootstrap:
-    username: ${BOOTSTRAP_ADMIN_USERNAME:}
-    password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+    username: ${BOOTSTRAP_ADMIN_USERNAME:root}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:admin@qweasda1123}
 logging:
   pattern:
     level: '%5p [traceId:%X{traceId:-}]'

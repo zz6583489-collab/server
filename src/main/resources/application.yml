@@ -1,3 +1,4 @@
+
 spring:
   application:
     name: teamflow
@@ -30,4 +31,6 @@ teamflow:
 logging:
   pattern:
     level: '%5p [traceId:%X{traceId:-}]'
-
+server:
+  servlet:
+    context-path: api

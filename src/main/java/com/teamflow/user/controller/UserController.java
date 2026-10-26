@@ -11,8 +11,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 用户
+ */
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/v1/users")
 public class UserController {
   private final UserMapper userMapper;
 
@@ -20,6 +23,11 @@ public class UserController {
     this.userMapper = userMapper;
   }
 
+  /**
+   * 个人信息
+   * @param authentication 认证信息
+   * @return
+   */
   @GetMapping("/me")
   public ApiResponse<UserView> me(JwtAuthenticationToken authentication) {
     long id;

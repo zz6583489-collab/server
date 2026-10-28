@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import com.teamflow.audit.service.AuditService;
 import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
+import com.teamflow.notification.service.NotificationService;
 import com.teamflow.project.entity.ProjectEntity;
 import com.teamflow.project.service.ProjectService;
 import com.teamflow.task.dto.TaskDtos;
@@ -27,6 +28,7 @@ class TaskServiceTest {
   private TaskMapper mapper;
   private ProjectService projects;
   private AuditService audit;
+  private NotificationService notifications;
   private TaskService service;
 
   @BeforeEach
@@ -34,7 +36,8 @@ class TaskServiceTest {
     mapper = mock(TaskMapper.class);
     projects = mock(ProjectService.class);
     audit = mock(AuditService.class);
-    service = new TaskService(mapper, projects, audit);
+    notifications = mock(NotificationService.class);
+    service = new TaskService(mapper, projects, audit, notifications);
     when(mapper.findVisible(10L, 8L)).thenReturn(task());
     when(projects.requireWritable(5L, 8L)).thenReturn(new ProjectEntity());
   }

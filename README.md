@@ -11,14 +11,14 @@ mvn clean verify
 使用隔离 MySQL 8.0.16+ 运行真实数据库测试时，设置 `TEAMFLOW_IT_DB_URL`、相同值的 `DB_URL`、`DB_USERNAME`、`DB_PASSWORD`、`JWT_SECRET` 后执行：
 
 ```text
-mvn -Dtest=ReportingIT,Phase2TransactionIT test
+mvn -Dtest=ReportingIT,Phase2TransactionIT,NotificationIT test
 ```
 
-有 Docker daemon 的环境可运行 `mvn -Dtest=ContainerMySqlIT test`；该用例从空 MySQL 8.4.13 容器验证 Flyway V1/V2/V3、CHECK 与跨账号项目授权。GitHub Actions 中的 `.github/workflows/ci.yml` 会执行常规验证和此容器用例；本机没有 Docker，不能把容器用例算作已通过。
+有 Docker daemon 的环境可运行 `mvn -Dtest=ContainerMySqlIT test`；该用例从空 MySQL 8.4.13 容器验证 Flyway V1–V6、CHECK 与跨账号项目授权。GitHub Actions 中的 `.github/workflows/ci.yml` 会执行常规验证和此容器用例；本机没有 Docker，不能把容器用例算作已通过。
 
 ## 启动与演示数据
 
-常规启动使用 `mvn spring-boot:run`，本地测试值在 `application.yml`。生产镜像强制启用 `prod` profile，必须提供 `DB_URL`、`DB_USERNAME`、`DB_PASSWORD`、`JWT_SECRET`；缺少配置时启动失败。首次管理员引导与 Cookie 配置见根仓库 `README.md`。
+常规启动使用 `mvn spring-boot:run`，本地测试值在 `application.yml`。未指定 profile 时默认启用 `dev`：运行日志同时输出到控制台和相对于启动工作目录的 `logs/teamflow.log`，按 10 MB 单文件、最多 7 天和 100 MB 总量滚动保留。可在 `server/` 执行 `Get-Content logs/teamflow.log -Wait -Tail 100`（PowerShell）持续查看。`logs/` 不纳入 Git。生产镜像强制启用 `prod` profile，只向容器控制台输出运行日志；必须提供 `DB_URL`、`DB_USERNAME`、`DB_PASSWORD`、`JWT_SECRET`，缺少配置时启动失败。首次管理员引导与 Cookie 配置见根仓库 `README.md`。
 
 登录限流默认按直连 `remoteAddr` 计数，并忽略客户端自报 IP。只有后端端口保持私有、入口代理覆盖 `X-Real-IP` 时才设置 `TRUST_FORWARDED_IP=true`；Compose 的 Nginx 满足这两个条件。生产外层代理还需配置可信 real-IP 来源。
 

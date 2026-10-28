@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.teamflow.audit.service.AuditService;
 import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
+import com.teamflow.notification.service.NotificationService;
 import com.teamflow.project.dto.ProjectDtos;
 import com.teamflow.project.entity.ProjectEntity;
 import com.teamflow.project.repository.ProjectMapper;
@@ -29,7 +30,8 @@ class ProjectServiceTest {
   void setUp() {
     mapper = mock(ProjectMapper.class);
     audit = mock(AuditService.class);
-    service = new ProjectService(mapper, mock(UserMapper.class), audit);
+    service =
+        new ProjectService(mapper, mock(UserMapper.class), audit, mock(NotificationService.class));
   }
 
   @Test

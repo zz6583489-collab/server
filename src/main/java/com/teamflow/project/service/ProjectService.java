@@ -4,6 +4,7 @@ import com.teamflow.audit.service.AuditService;
 import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
 import com.teamflow.common.response.PageResult;
+import com.teamflow.notification.service.NotificationService;
 import com.teamflow.project.dto.ProjectDtos;
 import com.teamflow.project.entity.ProjectEntity;
 import com.teamflow.project.repository.ProjectMapper;
@@ -19,11 +20,17 @@ public class ProjectService {
   private final ProjectMapper projects;
   private final UserMapper users;
   private final AuditService audit;
+  private final NotificationService notifications;
 
-  public ProjectService(ProjectMapper projects, UserMapper users, AuditService audit) {
+  public ProjectService(
+      ProjectMapper projects,
+      UserMapper users,
+      AuditService audit,
+      NotificationService notifications) {
     this.projects = projects;
     this.users = users;
     this.audit = audit;
+    this.notifications = notifications;
   }
 
   @Transactional
@@ -102,6 +109,7 @@ public class ProjectService {
       throw new BusinessException(ErrorCode.PROJECT_MEMBER_CONFLICT);
     }
     audit.record(actorId, projectId, "PROJECT_MEMBER", userId, "MEMBER_ADDED");
+    notifications.memberAdded(userId, actorId, projectId);
     return ProjectDtos.Member.from(projects.findMember(projectId, userId));
   }
 

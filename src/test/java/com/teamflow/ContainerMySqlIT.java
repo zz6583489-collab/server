@@ -54,7 +54,7 @@ class ContainerMySqlIT {
 
   @Test
   void freshMigrationEnforcesCheckAndSecondMigrationIsNoop() {
-    assertEquals("3", flyway.info().current().getVersion().toString());
+    assertEquals("6", flyway.info().current().getVersion().toString());
     assertEquals(0, flyway.migrate().migrationsExecuted);
     assertThrows(
         DataIntegrityViolationException.class,

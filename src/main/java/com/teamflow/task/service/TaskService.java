@@ -4,6 +4,8 @@ import com.teamflow.audit.service.AuditService;
 import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
 import com.teamflow.common.response.PageResult;
+import com.teamflow.notification.service.NotificationService;
+import com.teamflow.project.entity.ProjectEntity;
 import com.teamflow.project.service.ProjectService;
 import com.teamflow.task.TaskStatusMachine;
 import com.teamflow.task.dto.TaskDtos;
@@ -25,11 +27,17 @@ public class TaskService {
   private final TaskMapper tasks;
   private final ProjectService projects;
   private final AuditService audit;
+  private final NotificationService notifications;
 
-  public TaskService(TaskMapper tasks, ProjectService projects, AuditService audit) {
+  public TaskService(
+      TaskMapper tasks,
+      ProjectService projects,
+      AuditService audit,
+      NotificationService notifications) {
     this.tasks = tasks;
     this.projects = projects;
     this.audit = audit;
+    this.notifications = notifications;
   }
 
   @Transactional
@@ -51,6 +59,9 @@ public class TaskService {
     }
     activity(task.getId(), actorId, "TASK_CREATED", null, null);
     audit.record(actorId, projectId, "TASK", task.getId(), "TASK_CREATED");
+    if (assigneeId != null) {
+      notifications.taskAssigned(assigneeId, actorId, projectId, task.getId());
+    }
     return TaskDtos.View.from(tasks.findById(task.getId()));
   }
 
@@ -105,6 +116,7 @@ public class TaskService {
             || input.dueAt() != null
             || input.clearDueAt();
     boolean assignmentChange = input.assigneeId() != null || input.unassign();
+    Long previousAssigneeId = task.getAssigneeId();
     if (input.dueAt() != null && input.clearDueAt()) {
       throw new BusinessException(ErrorCode.VALIDATION_ERROR);
     }
@@ -134,13 +146,16 @@ public class TaskService {
     update(task);
     activity(taskId, actorId, "TASK_UPDATED", null, null);
     audit.record(actorId, task.getProjectId(), "TASK", taskId, "TASK_UPDATED");
+    if (task.getAssigneeId() != null && !task.getAssigneeId().equals(previousAssigneeId)) {
+      notifications.taskAssigned(task.getAssigneeId(), actorId, task.getProjectId(), taskId);
+    }
     return TaskDtos.View.from(tasks.findById(taskId));
   }
 
   @Transactional
   public TaskDtos.View transition(long taskId, long actorId, TaskDtos.Transition input) {
     TaskEntity task = requireVisible(taskId, actorId);
-    projects.requireWritable(task.getProjectId(), actorId);
+    ProjectEntity project = projects.requireWritable(task.getProjectId(), actorId);
     requireVersion(task, input.version());
     boolean owner = projects.isOwner(task.getProjectId(), actorId);
     if (task.getAssigneeId() == null || (!owner && task.getAssigneeId() != actorId)) {
@@ -152,6 +167,23 @@ public class TaskService {
     update(task);
     activity(taskId, actorId, "STATUS_CHANGED", before, input.toStatus());
     audit.record(actorId, task.getProjectId(), "TASK", taskId, "TASK_STATUS_CHANGED");
+    if ("IN_REVIEW".equals(input.toStatus()) && project.getOwnerId() != null) {
+      notifications.reviewRequested(project.getOwnerId(), actorId, task.getProjectId(), taskId);
+    }
+    if ("DONE".equals(input.toStatus())) {
+      notifications.taskCompleted(task.getReporterId(), actorId, task.getProjectId(), taskId);
+      if (task.getAssigneeId() != null && !task.getAssigneeId().equals(task.getReporterId())) {
+        notifications.taskCompleted(task.getAssigneeId(), actorId, task.getProjectId(), taskId);
+      }
+    }
+    if ("IN_REVIEW".equals(before)
+        && "IN_PROGRESS".equals(input.toStatus())
+        && task.getAssigneeId() != null) {
+      notifications.reviewRejected(task.getAssigneeId(), actorId, task.getProjectId(), taskId);
+    }
+    if ("DONE".equals(before) && task.getAssigneeId() != null) {
+      notifications.taskReopened(task.getAssigneeId(), actorId, task.getProjectId(), taskId);
+    }
     return TaskDtos.View.from(tasks.findById(taskId));
   }
 
